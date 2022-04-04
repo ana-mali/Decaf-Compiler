@@ -46,11 +46,14 @@ class Tokenizer:
         buff1=[]
         buff2=[]
         comment_line=0
-#            MAXARRAYSIZE=
+        MAXARRAYSIZE=2048
         with tokenize.open(self.filename) as f:
             tokens = tokenize.generate_tokens(f.readline)
             for token in tokens:
-                buff1.append(token)
+                if (len(buff1)>=MAXARRAYSIZE):
+                    buff2.append(token)
+                else:
+                    buff1.append(token)
                 if (comment_line==1):
                     if (token.string=='\n'):
                         comment_line=0
@@ -59,12 +62,13 @@ class Tokenizer:
                      token.string not in operators and 
                      token.string not in special_characters):
                     if (token.string[0].isdigit()):
-                        self.error(token)
+                        self.error(token,'error.txt','Incorrect identifier name')
                     else:
-                        self.is_identifier(token)
-                if (len(buff1)>=MAXARRAYSIZE)
-                    buff2.append(token)
-                    
+                        if (keywords[0] in token.line or keywords[9] in token.line):
+                            self.is_identifier(token)
+                        else:
+                            self.error(token,'error.txt',"Not a 'var' type")
+                
         return
     def is_identifier(self,token):
         for x in self.table:
@@ -72,7 +76,7 @@ class Tokenizer:
                 x.lines.append(token.start[0])
                 return 
         token_obj=[] 
-        if (keywords[7] in token.line or keywords[11] in token.line):
+        if (keywords[7] in token.line or keywords[11] in token.line): #func or package
             token_obj=self.is_func_or_package(token,token_obj)
             if not(keywords[4] in token.line):
                 self.scopenames.append(token_obj)
@@ -85,14 +89,48 @@ class Tokenizer:
                 for x in string:
                     if (found2):
                         token_obj.append(x) #type
-                        token_obj.append('var')
+                        token_obj.append('var') #attribute
                     if (found3):
-                        token_obj.append(x) #value
+                        if (token_obj[1]==keywords[0]):#bool
+                            if ('true' in x or 'false' in x ):
+                                token_obj.append(x) #value
+                            else:
+                                self.error(token,'error.txt','value does not match type')
+                        elif (token_obj[1]==keywords[9]):#int 
+                            if (x[-1]==';'): 
+                                if (x[0:-2].isdigit()):
+                                    token_obj.append(x)#value
+                                else:
+                                    self.error(token,'error.txt','value does not match type')
+                            else:
+                                self.error(token,'error.txt','no semi colon')
                         break;
                     if (x==token.string):
+                        token_obj.append(x)
                         found2=1
                     if (x=='='):
                         found3=1;
+            else:
+                for x in string:
+                    if (x==token.string):
+                        if (','==x[-1]):
+                            token_obj.append(x[0:-2]) #name
+                        else:
+                            token_obj.append(x)
+                    break;
+                if (string[-1] in keywords[0]): #bool 
+                    if ('true' in string[-1] or 'false' in string[-1]):
+                        if (string[-1][-1]==';' ):
+                            token_obj.append(x[0:-2])
+                        else:
+                            self.error(token,'error.txt','no semi colon')
+                elif (string[-1] in keywords[9]): #int
+                    if (string[-1][-1]==';'):
+                        token_obj.append(x[0:-2])
+                    else:
+                        self.error(token,'error.txt','no semi colon')
+                else:
+                    self.error(token,'error.txt','Incorrect syntax')
         lines=[]
         lines.append(token.start[0])
         token_obj.append(lines)
@@ -130,19 +168,20 @@ class Tokenizer:
                         if prev in keywords:
                             token_obj.append(prev)
                         else:
-                            self.error(token,'error.txt')
+                            self.error(token,'error.txt','Repeated keyword')
                     counter+=1
                     curr=a[counter]
         else:
-            self.error(token,'error.txt')
+            self.error(token,'error.txt','Not a function or package')
         if (len(self.scopenames)>0):
             token_obj[2]=self.scopenames[-1][0]
         else:
             token_obj[2]='global'
+        token_obj.append(token.start[0])
         return token_obj
-    def error(self,token,f):
+    def error(self,token,f,s):
         fh=open(f,'r+')
-        print("Error on line: "+str(token.start[0]),file=fh)
+        print("Error on line: "+str(token.start[0])+'; '+s,file=fh)
         print('\n',file=fh)
         fh.close()
         return 
