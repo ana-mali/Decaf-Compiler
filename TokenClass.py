@@ -62,7 +62,7 @@ class Tokenizer:
                         self.error(token)
                     else:
                         self.is_identifier(token)
-                if (len(buff1)>=MAXARRAYSIZE)
+                if (len(buff1)>=MAXARRAYSIZE):
                     buff2.append(token)
                     
         return
