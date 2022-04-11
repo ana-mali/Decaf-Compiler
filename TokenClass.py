@@ -7,10 +7,13 @@ Shima Iraniparast
 __updated__= "2022-02-20"
 ----------------------------------------
 '''
-
-#one symbol table and simpler, file error, double buffer, regex
 from Elements import *
 import tokenize 
+class Token:
+    def __init__(self,string,line_num,line):
+        self.string=string #string of token
+        self.line_num=line_num #line number in which it was found
+        self.line=line #string of tokens line
 class symbol_object:
         """
         functions for symbol object
@@ -18,26 +21,27 @@ class symbol_object:
         def __init__(self,token_obj):
             """
             Parameter:
-                token_obj - list
-                variable name, type and attribute 
+                token_obj - list -> token, type,attribute,value 
             """
 #            assert len(token_obj)==4,"invalid token"
-            self.name=token_obj[0]
+            self.token=token_obj[0]
             self.type=token_obj[1]
             self.attribute=token_obj[2]
             self.value=token_obj[3]
-            self.line=token_obj[4]
+            self.line=[]
+            self.line.append(token_obj[0].line_num)
 class Tokenizer:
     """
     Functions in order to provide lexical analysis 
     """
     
-    def __init__(self,file_name):
+    def __init__(self,file_name,error_filename):
         self.filename=file_name
+        self.error_file=error_filename
         self.num_id=0
         self.scopenames=[]
-        self.table=[] #buffer for symbol table
-
+        self.table=[] #for symbol table
+        self.num_error=0
     def tokenize(self):
         """
         Returns:
@@ -45,145 +49,143 @@ class Tokenizer:
         """
         buff1=[]
         buff2=[]
-        comment_line=0
+        start=[0,1] #[index,buffer]
+        curr=[0,1]
+        lines=0
         MAXARRAYSIZE=2048
-        with tokenize.open(self.filename) as f:
-            tokens = tokenize.generate_tokens(f.readline)
-            for token in tokens:
-                if (len(buff1)>=MAXARRAYSIZE):
-                    buff2.append(token)
-                else:
-                    buff1.append(token)
-                if (comment_line==1):
-                    if (token.string=='\n'):
-                        comment_line=0
-                    continue;
-                if (token.string not in keywords and 
-                     token.string not in operators and 
-                     token.string not in special_characters):
-                    if (token.string[0].isdigit()):
-                        self.error(token,'error.txt','Incorrect identifier name')
+        with open(self.filename) as fh: 
+            for line in fh: 
+                lines+=1 #keep track of lines
+                for char in line:
+                    token_obj=None
+                    if (len(buff1)>=MAXARRAYSIZE):
+                        if (len(buff2)>=MAXARRAYSIZE):#if both buffers are full...
+                            curr=[0,1]
+                            buff1.clear() #clear buffer1 and start again in buff1
+                            buff1.append(char)
+                        else:#if buff1 is full go to buff2
+                            buff2.append(char)
                     else:
-                        if (keywords[0] in token.line or keywords[9] in token.line):
-                            self.is_identifier(token)
-                        else:
-                            self.error(token,'error.txt',"Not a 'var' type")
-                
+                        if (len(buff2)>=MAXARRAYSIZE):# if buff2 is full and buff1 is not..
+                            buff2.clear()# then clear buff2
+                        buff1.append(char)
+                    if (start[1]==1 and curr[1]==1): #in buffer 1
+                        if (buff1[curr[0]+1].isspace()):#if lookahead is whitespace
+                            a=Token(buff1[start[0]:curr[0]],lines,line)
+                            if (special_characters[2] in a.line):
+                                start=curr
+                                curr[0]+=1
+                                continue;
+                            if (a.string in keywords):
+                                token_obj=[a,None,'keyword',None] 
+                            elif(a.string in operators):
+                                token_obj=[a,None,'operator',None]
+                            else: 
+                                if (not a.string[0].isalpha()):
+                                    self.error(a,self.error_file,'Incorrect identifier name')
+                                else:
+                                    token_obj=self.is_identifier(a)
+                        if (len(buff1)==MAXARRAYSIZE-1):
+                            curr=[0,2]#change current to next buffer if buff1 is full
+                        if (len(buff1)==MAXARRAYSIZE-1):
+                            start=[0,2]
+                    elif (start[1]==2 and curr[1]==2): #in buffer 2
+                        if (buff2[curr[0]+1].isspace()):#if lookahead is whitespace
+                            a=Token(buff2[start[0]:curr[0]],lines,line)
+                            if (special_characters[2] in a.line):
+                                start=curr
+                                curr[0]+=1
+                                continue;
+                            if (a.string in keywords):
+                                token_obj=[a,None,'keyword',None]
+                            elif(a.string in operators):
+                                token_obj=[a,None,'operator',None]
+                            else:
+                                if (not a.string[0].isalpha()):
+                                    self.error(a,self.error_file,'Incorrect identifier name')
+                                else:
+                                    token_obj=self.is_identifier(a)
+                        if (curr[0]==MAXARRAYSIZE-1): #end of buffer
+                            curr=[0,2]#change current to next buffer if buff1 is full
+                        if (start[0]==MAXARRAYSIZE-1):
+                            start=[0,2]
+                    elif (start[1]==1 and curr[1]==2):#start in buff1, curr in buff2
+                        if (buff2[curr[0]+1].isspace()):
+                            a=Token(buff1[start[1:-1]]+buff2[curr[0:1]],lines,line)
+                            if (special_characters[2] in a.line):
+                                start=curr
+                                curr[0]+=1
+                                continue;
+                            if (a.string in keywords):
+                                token_obj=[a,None,'keyword',None]
+                            elif (a.string in operators):
+                                token_obj=[a,None,'operator',None]
+                            else:
+                                if (not a.string[0].isalpha()):
+                                    self.error(a,self.error_file,'Incorrect identifier name')
+                                else:
+                                    token_obj=self.is_identifier(a)
+                    elif (start[1]==2 and curr[1]==1): #start in buff2, curr in buff1
+                        if (buff1[curr[0]+1].isspace()):
+                            a=Token(buff2[start[1]:-1]+buff1[0:curr[1]],lines,line)
+                            if (special_characters[2] in a.line):
+                                start=curr
+                                curr[0]+=1
+                                continue;
+                            if (a.string in keywords):
+                                token_obj=[a,None, 'keyword',None]
+                            elif (a.string in operators):
+                                token_obj=[a,None,'operator',None]
+                            elif (a.string not in special_characters):#ignore any special characters
+                                if (not a.string[0].isalpha()):
+                                    self.error(a,self.error_file,'Incorrect identifier name')
+                                else:
+                                    token_obj=self.is_identifier(a)
+                    if (token_obj!=None):
+                        b=symbol_object(token_obj)
+                        self.table.append(b)
+                        start=curr 
+                        
         return
     def is_identifier(self,token):
         for x in self.table:
-            if (x.name==token.string):
-                x.lines.append(token.start[0])
+            if (x.token.string==token.string):
+                x.line.append(token.line_num)
                 return 
-        token_obj=[] 
         if (keywords[7] in token.line or keywords[11] in token.line): #func or package
-            token_obj=self.is_func_or_package(token,token_obj)
+            token_obj=self.is_func_or_package(token)
             if not(keywords[4] in token.line):
                 self.scopenames.append(token_obj)
-            return
-        string=token.line.split()
-        if (string[0]=='var'):
-            if ('=' in string):
-                found2=0
-                found3=0
-                for x in string:
-                    if (found2):
-                        token_obj.append(x) #type
-                        token_obj.append('var') #attribute
-                    if (found3):
-                        if (token_obj[1]==keywords[0]):#bool
-                            if ('true' in x or 'false' in x ):
-                                token_obj.append(x) #value
-                            else:
-                                self.error(token,'error.txt','value does not match type')
-                        elif (token_obj[1]==keywords[9]):#int 
-                            if (x[-1]==';'): 
-                                if (x[0:-2].isdigit()):
-                                    token_obj.append(x)#value
-                                else:
-                                    self.error(token,'error.txt','value does not match type')
-                            else:
-                                self.error(token,'error.txt','no semi colon')
-                        break;
-                    if (x==token.string):
-                        token_obj.append(x)
-                        found2=1
-                    if (x=='='):
-                        found3=1;
-            else:
-                for x in string:
-                    if (x==token.string):
-                        if (','==x[-1]):
-                            token_obj.append(x[0:-2]) #name
-                        else:
-                            token_obj.append(x)
-                    break;
-                if (string[-1] in keywords[0]): #bool 
-                    if ('true' in string[-1] or 'false' in string[-1]):
-                        if (string[-1][-1]==';' ):
-                            token_obj.append(x[0:-2])
-                        else:
-                            self.error(token,'error.txt','no semi colon')
-                elif (string[-1] in keywords[9]): #int
-                    if (string[-1][-1]==';'):
-                        token_obj.append(x[0:-2])
-                    else:
-                        self.error(token,'error.txt','no semi colon')
-                else:
-                    self.error(token,'error.txt','Incorrect syntax')
-        lines=[]
-        lines.append(token.start[0])
-        token_obj.append(lines)
-        a=symbol_object(token_obj)
-        self.table.append(a)
-        self.num_id+=1
-        return
-    
-    '''
-    self.name=token[0]
-    self.type=token[1]
-    self.attribute=token[2]
-    self.value=token[3]
-    '''
-    def is_func_or_package(self, token,token_obj):
-        if (keywords[11] in token.line):
-            token_obj.append(token.string)
-            token_obj.append(keywords[11])
-            token_obj.append('')
+            return token_obj
+        
+        else:
+            token_obj=[]
+            token_obj.append(token)
+            token_obj.append(None)#type
+            token_obj.append('id')#attribute identifier
+            token_obj.append(None)#value 
+
+            self.num_id+=1
+        return token_obj
+    def is_func_or_package(self, token):
+        token_obj=[]
+        if (keywords[11] in token.line): #package
+            token_obj.append(token)
             token_obj.append(None)
-        elif(keywords[7] in token.line):
-            token_obj.append(token.string)
-            token_obj.append(keywords[7])
-            token_obj.append('')
-            a=token.line.split(' ')
-            a.append(None)
-            prev=''
-            counter=0
-            if (keywords[4] in a):
-                token_obj.append(a[-1])
-            else:
-                curr=a[counter]
-                while curr is not None:
-                    if prev is not None and prev is not keywords[7]:
-                        if prev in keywords:
-                            token_obj.append(prev)
-                        else:
-                            self.error(token,'error.txt','Repeated keyword')
-                    counter+=1
-                    curr=a[counter]
-        else:
-            self.error(token,'error.txt','Not a function or package')
-        if (len(self.scopenames)>0):
-            token_obj[2]=self.scopenames[-1][0]
-        else:
-            token_obj[2]='global'
-        token_obj.append(token.start[0])
+            token_obj.append(keywords[11])
+            token_obj.append(None)
+        elif(keywords[7] in token.line): #func
+            token_obj.append(token) #token
+            token_obj.append(None) #type 
+            token_obj.append(keywords[7]) #attribute
+            token_obj.append(None) #value
         return token_obj
     def error(self,token,f,s):
         fh=open(f,'r+')
         print("Error on line: "+str(token.start[0])+'; '+s,file=fh)
         print('\n',file=fh)
         fh.close()
+        self.num_error+=1
         return 
     def print_table(self,output_filename):
         """
