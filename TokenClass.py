@@ -7,8 +7,9 @@ Shima Iraniparast
 __updated__= "2022-02-20"
 ----------------------------------------
 '''
-
+MAXARRAYSIZE = 2048
 #one symbol table and simpler, file error, double buffer, regex
+import string
 from Elements import *
 import tokenize 
 class symbol_object:
@@ -27,6 +28,21 @@ class symbol_object:
             self.attribute=token_obj[2]
             self.value=token_obj[3]
             self.line=token_obj[4]
+
+class Token:
+    """
+    Token object
+    """
+    TYPES = []
+    def __init__(self, token_type, token_string, token_line_num, token_line):
+        self.type = None
+        self.string = token_string
+        self.line_num = token_line_num
+        self.line = token_line
+
+    # def get_type(self):
+    #     if 
+        
 class Tokenizer:
     """
     Functions in order to provide lexical analysis 
@@ -59,7 +75,7 @@ class Tokenizer:
                      token.string not in operators and 
                      token.string not in special_characters):
                     if (token.string[0].isdigit()):
-                        self.error(token)
+                        self.error(token, "error.txt")
                     else:
                         self.is_identifier(token)
                 if (len(buff1)>=MAXARRAYSIZE):
