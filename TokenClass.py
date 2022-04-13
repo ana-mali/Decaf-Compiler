@@ -94,7 +94,7 @@ class Tokenizer:
                         prev_state=temp
                         status,state=self.check_state(status, char)
                         if (prev_state=='space' and status=='space'):
-                           token_obj='ignore'
+                            token_obj='ignore'
                         if (state and token_obj==None): #if state=1 then a change of state has occurred
                             a=Token(''.join(buff1[start[0]:curr[0]]),lines,line)
                             if (prev_state==state_machine[1]):#keyword/id/number
@@ -120,15 +120,17 @@ class Tokenizer:
                     elif (start[1]==2 and curr[1]==2): #in buffer 2
                         temp=status
                         prev_state=temp
-                        state,status=self.check_state(status, char)
-                        if (state): #if state=1 then a change of state has occurred
-                            a=Token(''.join(buff2[start[0]:curr[0]]),lines,line)
+                        status,state=self.check_state(status, char)
+                        if (prev_state=='space' and status=='space'):
+                            token_obj='ignore'
+                        if (state and token_obj==None): #if state=1 then a change of state has occurred
+                            a=Token(''.join(buff1[start[0]:curr[0]]),lines,line)
                             if (prev_state==state_machine[1]):#keyword/id/number
-                                if (any(x.isdigit()) for x in a.string): #check for any numbers
+                                if True in [x.isdigit() for x in a.string]:
                                     if (a.string.isdigit()):
                                         token_obj=[a,None,'number',None]
                                     else:
-                                        token_obj=self.is_identifier(a)#identifier w/ numbers
+                                        token_obj=self.is_identifier(a)
                                 elif (a.string in keywords):
                                     token_obj=[a,None,'keyword',None]
                                 else:
@@ -138,14 +140,20 @@ class Tokenizer:
                                     token_obj=[a,None,'operator',None]
                                 else:
                                     self.error(a,'Not an operator')
+                            else:
+                                
+                                token_obj='ignore'
+                            # if space or special characters, ignore and keep going
                     elif (start[1]==1 and curr[1]==2):#start in buff1, curr in buff2
                         temp=status
                         prev_state=temp
-                        state,status=self.check_state(status, char)
-                        if (state): #if state=1 then a change of state has occurred
-                            a=Token(''.join(buff1[start[0]:-1]+buff2[0:curr[0]]),lines,line)
+                        status,state=self.check_state(status, char)
+                        if (prev_state=='space' and status=='space'):
+                            token_obj='ignore'
+                        if (state and token_obj==None): #if state=1 then a change of state has occurred
+                            a=Token(''.join(buff1[start[0]:curr[0]]),lines,line)
                             if (prev_state==state_machine[1]):#keyword/id/number
-                                if (any(x.isdigit()) for x in a.string): #has any numbers
+                                if True in [x.isdigit() for x in a.string]:
                                     if (a.string.isdigit()):
                                         token_obj=[a,None,'number',None]
                                     else:
@@ -159,14 +167,20 @@ class Tokenizer:
                                     token_obj=[a,None,'operator',None]
                                 else:
                                     self.error(a,'Not an operator')
+                            else:
+                                
+                                token_obj='ignore'
+                            # if space or special characters, ignore and keep going
                     elif (start[1]==2 and curr[1]==1): #start in buff2, curr in buff1
                         temp=status
                         prev_state=temp
-                        state,status=self.check_state(status, char)
-                        if (state): #if state=1 then a change of state has occurred
-                            a=Token(''.join(buff1[start[0]:-1]+buff2[0:curr[0]]),lines,line)
+                        status,state=self.check_state(status, char)
+                        if (prev_state=='space' and status=='space'):
+                            token_obj='ignore'
+                        if (state and token_obj==None): #if state=1 then a change of state has occurred
+                            a=Token(''.join(buff1[start[0]:curr[0]]),lines,line)
                             if (prev_state==state_machine[1]):#keyword/id/number
-                                if (any(x.isdigit()) for x in a.string): #has any numbers
+                                if True in [x.isdigit() for x in a.string]:
                                     if (a.string.isdigit()):
                                         token_obj=[a,None,'number',None]
                                     else:
@@ -180,6 +194,9 @@ class Tokenizer:
                                     token_obj=[a,None,'operator',None]
                                 else:
                                     self.error(a,'Not an operator')
+                            else:
+                                token_obj='ignore'
+                            # if space or special characters, ignore and keep going
                     if (token_obj!=None):
                         if (token_obj!='ignore' and not self.is_token_or_symbol(token_obj)):
                             b=symbol_object(token_obj)
