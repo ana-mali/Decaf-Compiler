@@ -88,12 +88,14 @@ class Tokenizer:
                         buff=curr[1]
                         start[0]=index
                         start[1]=buff
-                        curr[0]+=1
+                        continue;
                     if (start[1]==1 and curr[1]==1): #in buffer 1
                         temp=status
                         prev_state=temp
                         status,state=self.check_state(status, char)
-                        if (state): #if state=1 then a change of state has occurred
+                        if (prev_state=='space' and status=='space'):
+                           token_obj='ignore'
+                        if (state and token_obj==None): #if state=1 then a change of state has occurred
                             a=Token(''.join(buff1[start[0]:curr[0]]),lines,line)
                             if (prev_state==state_machine[1]):#keyword/id/number
                                 if True in [x.isdigit() for x in a.string]:
@@ -111,6 +113,7 @@ class Tokenizer:
                                 else:
                                     self.error(a,'Not an operator')
                             else:
+                                
                                 token_obj='ignore'
                             # if space or special characters, ignore and keep going
                 
