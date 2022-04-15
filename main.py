@@ -1,11 +1,21 @@
 '''
 ----------------------------------------
-[program description]
+[Main program to run compiler]
 ----------------------------------------
-__updated__= "2022-02-20"
+__updated__= "2022-04-15"
 ----------------------------------------
 '''
 from TokenClass import Tokenizer
-a=Tokenizer('DexafCodeExample.txt')
-a.tokenize()
-a.print_table('output.txt')
+from ParseTree import *
+a=Tokenizer('DexafCodeExample.txt','error.txt')#create token object...
+#with source filename and error filename
+
+#Lexical Analysis
+a.tokenize() #initiate tokenization
+
+#Syntax Analysis 
+b=Parse_tree(a,'error.txt') #with tokenizer and error filename
+b.Create_ParseTree()
+#Semantic Analysis
+
+#a.print_table('output.txt') #print symbol table to output file
