@@ -1,0 +1,125 @@
+'''
+----------------------------------------
+[Semantic Analysis]
+----------------------------------------
+__updated__= "2022-04-15"
+----------------------------------------
+'''
+#scope checking and type checking
+from ParseTree import *
+from TokenClass import *
+
+class Semantic_analysis:
+    def __init__(self,tokenizer,parser,error):
+        '''
+        Parameters:
+            Tokenizer - object tokenizer for updating errors etc.
+            Parser - object ParseTree for states (scope) per node
+            error - file name to write errors to (must be consistent to ^)
+        Forms:
+            Generates errors where necessary 
+            checks scope and types
+            Updates symbol table with values 
+        '''
+        self.tokenizer=tokenizer 
+        self.parse=parser
+        self.error_file=error
+        self.scopenames=tokenizer.generate_scopenames()
+        self.scope_variables=[]
+        
+    def Semantics(self):
+        declared_id=[]
+        start=0 #indexes for delcared_id 
+        curr=0
+        num_open=0 #number of open curly brackets
+        num_close=0 #number of closed curly brackets
+        for x in self.tokenizer.table:
+            if (x.token.line_num not in self.parse.error_lines):
+                if (x.attribute=='id'): #if identifier 
+                    line=x.token.line.split(' ')
+                    if (line[0]=='var'):#declaration
+                        if ((line[-2].isdigit() and keywords[9] in line) or 
+                            (line[-2] is keywords[9] and operators[8] not in line)):
+                            x.type=keywords[9]
+                            declared_id.append(x)
+                            curr+=1
+                        #else error?
+                    else: #assigning id to id
+                        found1=0
+                        found2=0
+                        for y in declared_id:
+                            if (y in line):
+                                if (found2):
+                                    break;
+                                if (not found1):
+                                    found1=1
+                                elif (not found2):
+                                    found2=1
+                        if not (found2 and found1):
+                            self.error(x,'cannot use undeclared identifiers')
+                elif (x.attribute=='number'):
+                    line=x.token.line.split(' ')
+                    found=0
+                    for y in declared_id:
+                        if (y in line):
+                            id=y
+                            found=1
+                            break;
+                    if (found):
+                        if (keywords[9] in line):
+                            id.value=int(x.token.string)#set value for declared identifier
+                    else:
+                        self.error(x,'Cannot set number to undeclared identifier')
+                elif (x.attribute==keywords[11] or x.attribute==keywords[7]): #func or package
+                    for y in self.scopenames:
+                        found=0
+                        if (y.token.string==x.token.string):
+                            found=1
+                            break;
+                        if not (found):
+                            self.error(x,'Cannot use undeclared functions/packages')
+                        else:
+                            line=x.token.line.split(' ')
+                            if (x.attribute==keywords[7]):
+                                x.type=line[-2] 
+                elif (x.token.string==operators[0]): #open curly
+                    num_open+=1
+                    line=x.token.line.split(' ')
+                    if (keywords[12] in line):
+                        continue
+                    elif (keyword[7] in line):
+                        if (line[1] in scopenames):
+                            section=declared_id[start:curr+1]
+                elif (x.token.string==operators[1]): #closed curly bracket
+                    num_close+=1
+                    line=x.token.line.split(' ')
+                    if (keywords[12] in line): #ignore return statements in if/else
+                        continue
+                elif (x.token.string==keywords[12]): #make sure return type is correct with func type 
+                    line=x.token.line.split(' ')
+                    found=0
+                    found1=0
+                    for y in line:
+                        if (found1):
+                            val=y #return value
+                            break;
+                        elif (found):# bracket
+                            found1=1
+                        elif (y==keywords[12]):
+                            found=1
+                    good=0
+                    for z in declared_id:
+                        if (val==z.token.string):
+                            if (z.) 
+                    if (not good):
+                        if (val in scopenames):
+                #check if declared and its associated type
+           #if number, need to connect it to its associated ids
+    def error(self,sym_obj,s):
+        fh=open(self.error_file,'r+')
+        print("Error on line: "+str(sym_obj.token.line_num)+": token: "+sym_obj.token.string+' : '+s,file=fh)
+        print('\n',file=fh)
+        fh.close()
+        self.tokenizer.num_error+=1
+        self.parse.error_lines.append(sym_obj.token.line_num)
+          
