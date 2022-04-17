@@ -8,6 +8,7 @@ __updated__= "2022-04-15"
 #scope checking and type checking
 from ParseTree import *
 from TokenClass import *
+from _ast import Or
 
 class Semantic_analysis:
     def __init__(self,tokenizer,parser,error):
@@ -26,95 +27,167 @@ class Semantic_analysis:
         self.error_file=error
         self.scopenames=tokenizer.generate_scopenames()
         self.scope_variables=[]
-        
+        self.scope_params=[]
     def Semantics(self):
+        print(self.scopenames)
+        curr_scope=self.scopenames[0]
         declared_id=[]
-        start=0 #indexes for delcared_id 
-        curr=0
         num_open=0 #number of open curly brackets
         num_close=0 #number of closed curly brackets
         for x in self.tokenizer.table:
             if (x.token.line_num not in self.parse.error_lines):
                 if (x.attribute=='id'): #if identifier 
-                    line=x.token.line.split(' ')
-                    if (line[0]=='var'):#declaration
-                        if ((line[-2].isdigit() and keywords[9] in line) or 
-                            (line[-2] is keywords[9] and operators[8] not in line)):
-                            x.type=keywords[9]
-                            declared_id.append(x)
-                            curr+=1
-                        #else error?
-                    else: #assigning id to id
-                        found1=0
-                        found2=0
-                        for y in declared_id:
-                            if (y in line):
-                                if (found2):
-                                    break;
-                                if (not found1):
-                                    found1=1
-                                elif (not found2):
-                                    found2=1
-                        if not (found2 and found1):
-                            self.error(x,'cannot use undeclared identifiers')
-                elif (x.attribute=='number'):
-                    line=x.token.line.split(' ')
-                    found=0
-                    for y in declared_id:
-                        if (y in line):
-                            id=y
-                            found=1
-                            break;
-                    if (found):
-                        if (keywords[9] in line):
-                            id.value=int(x.token.string)#set value for declared identifier
+                    if (keywords[15] in x.token.line): #declaration 
+                        line=x.token.line.split(' ')
+                        if (operators[8] in line): #assigning a values
+                            if (keywords[9] in line):
+                                x.type=keywords[9]
+                                if (line[-2].isdigit()):
+                                    x.value=int(line[-2])
+                                    l=[x,keywords[9],curr_scope]
+                                else:
+                                    self.error(x, 'incorrect value type assignment')
+                            elif (keywords[13] in line):
+                                x.type=keywords[13]
+                                if (line[-2].isalpha()):
+                                    str=''
+                                    for y in line:
+                                        if ("'" or '"' in y):
+                                            str=str+y
+                                    x.value=str
+                                    l=[x,keywords[13],curr_scope]
+                                else:
+                                    self.error(x,'incorrect value type assignment')
+                            else:
+                                self.error(x,'incorrect identifier type ')
+                        else: #declaring a none value
+                            if (keywords[9] in line):
+                                x.type=keywords[9] 
+                                l=[x,x.type,curr_scope]
+                            elif (keywords[13] in line):
+                                x.type=keywords[13]
+                                l=[x,keywords[13],curr_scope]
+                            else:
+                                self.error(x,'incorrect identifier type ')
+                        
+                elif (x.attribute==keywords[11]): #packages
+                    if (x not in self.scopenames):
+                        self.error(x, 'Incorrect package name')
                     else:
-                        self.error(x,'Cannot set number to undeclared identifier')
-                elif (x.attribute==keywords[11] or x.attribute==keywords[7]): #func or package
-                    for y in self.scopenames:
+                        curr_scope=x
+                elif (x.attribute==keywords[7]):
+                    if (keywords[7] in x.token.line):
+                        line=x.token.line.split(' ')
+                        param = []
+                        i = 0
+                        while (line[i] != ")"):
+                            if ((line[i] == "(" and line[i+1]!=')') or line[i] == ","):
+                                param.append([line[i+1],line[i+2]])
+                            i+=1
+                        if (len(param)>1):#check if declared variables
+                            for x in range(len(param)):
+                                found=0
+                                for y in self.scope_variables:
+                                    if (param[x][0] in y.token.string):
+                                        found=1
+                                        break;
+                                if (not found):
+                                    self.error(x,'Cannot use undeclared identifier')
+                                    break;
+                                else:
+                                    found=0
+                                    for x in self.scopenames:
+                                        if (x==curr_scope):
+                                            found=1
+                                            break;
+                                    if not(found):
+                                        self.error(x,'undefined function')
+                                    else:
+                                        found=0
+                                        var=None
+                                        for x in self.scope_params:
+                                            if(x.token.string==x[0]):
+                                                found=1
+                                                var=x
+                                                break; 
+                                        if not(found):
+                                            l=[curr_scope,len(param)]
+                                            self.scope_params.append(l) #check for number of parameters
+                                            curr_scope=x
+                                        elif (x[1]!=len(param)):
+                                            self.error(x,'Incorrect number of parameters')
+                    else: #function calls
+                        line=x.token.line.split(' ')
+                        param = []
+                        i = 0
+                        while (line[i] != ")"):
+                            if ((line[i] == "(" and line[i+1]!=')') or line[i] == ","):
+                                param.append(line[i+1])
+                            i+=1
+                elif (x.token.string=='if'):
+                    line=x.token.line.split(' ')
+                    cond_str=[]
+                    i = 0
+                    while (line[i] != ")"):
+                        if (line[i] == "(" or (line[i+1] != "(") and line[i+1] != ")"):
+                            cond_str.append(line[i+1])
+                        i+=1
+                    if (len(cond_str)==3):
+                        var=cond_str[0]
                         found=0
-                        if (y.token.string==x.token.string):
-                            found=1
-                            break;
-                        if not (found):
-                            self.error(x,'Cannot use undeclared functions/packages')
+                        for y in scope_variables:
+                            if (var in y.token.string):
+                                id=y
+                                found=1
+                        if not(found):
+                            self.error(x,'Cannot use undeclared identifier')
                         else:
-                            line=x.token.line.split(' ')
-                            if (x.attribute==keywords[7]):
-                                x.type=line[-2] 
-                elif (x.token.string==operators[0]): #open curly
-                    num_open+=1
+                            var=cond_str[2]
+                            if not((var.isdigit() and id.type=='int')or
+                                (var.isalpha() and id.type=='string')):
+                                self.error(x,'Condition must have of the same types')
+                            else:
+                                var=cond_str[1]
+                                if not(var==operators[19] or var==operators[20] 
+                                    or var==operators[21] or var==operator[22] or 
+                                    var==operators[16] or var==operators[17]):
+                                    self.error(x,'Condition must have boolean operators')
+                
+                        
+                        
+                elif (x.token.string=='return'):
                     line=x.token.line.split(' ')
-                    if (keywords[12] in line):
-                        continue
-                    elif (keyword[7] in line):
-                        if (line[1] in scopenames):
-                            section=declared_id[start:curr+1]
-                elif (x.token.string==operators[1]): #closed curly bracket
-                    num_close+=1
-                    line=x.token.line.split(' ')
-                    if (keywords[12] in line): #ignore return statements in if/else
-                        continue
-                elif (x.token.string==keywords[12]): #make sure return type is correct with func type 
-                    line=x.token.line.split(' ')
-                    found=0
-                    found1=0
-                    for y in line:
-                        if (found1):
-                            val=y #return value
-                            break;
-                        elif (found):# bracket
-                            found1=1
-                        elif (y==keywords[12]):
-                            found=1
-                    good=0
-                    for z in declared_id:
-                        if (val==z.token.string):
-                            if (z.) 
-                    if (not good):
-                        if (val in scopenames):
-                #check if declared and its associated type
-           #if number, need to connect it to its associated ids
+                    if ((operators[19] or operators[20] 
+                        or operators[21] or operator[22] or 
+                        operators[16] or operators[17]) in line):
+                        if not(curr_scope.type=='bool'):
+                            self.error(x,'Incorrect return type')
+                    elif (  ):
+                        i=0
+                        for x in range(len(line)):
+                            if (line[x]=='return'):
+                                i=x+2
+                                break
+                        good=0
+                        var=None
+                        for y in self.scope_variables:
+                            if (line[i]==y.token.string):
+                                good=1 
+                                var=y
+                        if not(good):
+                            for y in self.scopenames:
+                                if (line[i]==y.token.string):
+                                    good=1 
+                                    var=y
+                        if not(good):
+                            self.error(x,'Cannot use undeclared variables')
+                        else:
+                            if not(y.type==curr_scope.type):
+                                self.error(x,'Incorrect return type')
+                        
+                
+                
+              
     def error(self,sym_obj,s):
         fh=open(self.error_file,'r+')
         print("Error on line: "+str(sym_obj.token.line_num)+": token: "+sym_obj.token.string+' : '+s,file=fh)
@@ -122,4 +195,4 @@ class Semantic_analysis:
         fh.close()
         self.tokenizer.num_error+=1
         self.parse.error_lines.append(sym_obj.token.line_num)
-          
+                
