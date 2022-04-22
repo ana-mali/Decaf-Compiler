@@ -1,0 +1,31 @@
+_GCD:
+	BeginFunc
+	_t0 = 10
+	_t1 = 20
+	EndFunc;
+
+_GCD.main:
+	BeginFunc 5;
+	x = _t0
+	y = _t1
+	z = 
+	PushParam x;
+	PushParam y;
+	lCall _gcd;
+	PopParams 5;
+	EndFunc;
+
+_GCD.gcd:
+	BeginFunc 5;
+	_t2 = _t1 == 0
+	if z _ t2 Goto _L0
+	PopParam 5
+	Goto _L1
+	_L0: 
+	PushParam _t0;
+	_t3 = _t0 % _t1
+	PushParam _t3
+	lCall _gcd
+	EndFunc;
+
+	

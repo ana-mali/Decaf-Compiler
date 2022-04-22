@@ -1,0 +1,45 @@
+Program = Externs package identifier "{" FieldDecls MethodDecls "}" .
+Externs    = { ExternDefn } .
+ExternDefn = extern func identifier "(" [ { ExternType }+, ] ")" MethodType ";" .
+FieldDecls = { FieldDecl } .
+FieldDecl  = var { identifier }+, Type ";" .
+FieldDecl  = var { identifier }+, ArrayType ";" .
+FieldDecl  = var identifier Type "=" Constant ";" .
+MethodDecls = { MethodDecl } .
+MethodDecl  = func identifier "(" [ { identifier Type }+, ] ")" MethodType Block .
+Block = "{" VarDecls Statements "}" .
+VarDecls = { VarDecl } .
+VarDecl  = var { identifier }+, Type ";" .
+Statements = { Statement } .
+Statement = Block .
+Statement = Assign ";" .
+Assign    = Lvalue "=" Expr .
+Lvalue    = identifier | identifier "[" Expr "]" .
+Statement  = MethodCall ";" .
+MethodCall = identifier "(" [ { MethodArg }+, ] ")" .
+MethodArg  = Expr | string_lit .
+Statement = if "(" Expr ")" Block [ else Block ] .
+Statement =  while "(" Expr ")" Block .
+Statement = for "(" { Assign }+, ";" Expr ";" { Assign }+, ")" Block .
+Statement = return [ "(" [ Expr ] ")" ] ";" .
+Statement = break ";" .
+Statement = continue ";" .
+Expr = identifier .
+Expr = MethodCall .
+Expr = Constant .
+UnaryOperator = ( UnaryNot | UnaryMinus ) .
+UnaryNot = "!" .
+UnaryMinus = "-" .
+BinaryOperator = ( ArithmeticOperator | BooleanOperator ) .
+ArithmeticOperator = ( "+" | "-" | "*" | "/" | "<<" | ">>" | "%" ) .
+BooleanOperator = ( "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||" ) .
+Expr = Expr BinaryOperator Expr .
+Expr = UnaryOperator Expr .
+Expr = "(" Expr ")" .
+Expr = identifier "[" Expr "]" .
+ExternType = ( string | Type ) .
+Type = ( int | bool ) .
+MethodType = ( void | Type ) .
+BoolConstant = ( true | false ) .
+ArrayType = "[" int_lit "]" Type .
+Constant = ( int_lit | char_lit | BoolConstant ) .

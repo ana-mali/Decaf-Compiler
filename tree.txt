@@ -1,0 +1,16 @@
+Program 
+    package GreatestCommonDivisor
+        Block
+        Function: main : integer()
+            Block
+            Variable: x : integer 
+            Variable y : integer
+            Variable z : integer
+            FunctionCall: gcd ( x , y )
+        Function: gcd : integer (x : integer , y : integer)
+            Conditional
+                if b == 0
+                return Location: a
+            Conditional
+                else    
+                return FunctionCall: gcd ( b, a % b)
