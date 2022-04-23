@@ -1,4 +1,4 @@
-'''
+''''
 ----------------------------------------
 [Main program to run compiler]
 ----------------------------------------
@@ -8,6 +8,7 @@ __updated__= "2022-04-15"
 from TokenClass import Tokenizer
 from ParseTree import *
 from Semantics import *
+from IR import *
 a=Tokenizer('DexafCodeExample.txt','error.txt')#create token object...
 #with source filename and error filename
 
@@ -15,7 +16,7 @@ a=Tokenizer('DexafCodeExample.txt','error.txt')#create token object...
 a.tokenize() #initiate tokenization
 
 for x in a.table:
-    print(x.token.string+' : '+x.attribute)
+    print(x.token.string+' : '+x.attribute+' : '+str(x.line))
 a.count_identifiers()
 print('number of identifiers: '+ str(a.num_id))
 
@@ -28,4 +29,6 @@ c=Semantic_analysis(a,b,'error.txt')
 c.Semantics()
 print('number of errors: '+ str(a.num_error))
 
-#a.print_table('output.txt') #print symbol table to output file
+#Intermediate Code Generation
+d=IR(a,b,c,'output.txt')
+d.Create_IR()
