@@ -32,3 +32,4 @@ print('number of errors: '+ str(a.num_error))
 #Intermediate Code Generation
 d=IR(a,b,c,'output.txt')
 d.Create_IR()
+print("Compiled! Check output file for IR")
