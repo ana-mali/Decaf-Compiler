@@ -1,0 +1,24 @@
+program
+package{
+
+block
+variable :10;
+=
+variable :20;
+=
+Function: int
+variable z
+Function: int
+Conditional
+if: 
+return: location: a
+Conditional
+else: 
+return: location: b)
+: b)
+ion: b)
+se: 
+							return: location: }
+
+return: location: }
+
